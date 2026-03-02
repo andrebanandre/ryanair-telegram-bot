@@ -25,8 +25,8 @@ Talk to [@BotFather](https://t.me/BotFather) on Telegram, create a bot, copy the
 ### 2. Clone and configure
 
 ```bash
-git clone https://github.com/your-username/ryanair-tracker.git
-cd ryanair-tracker
+git clone https://github.com/andrebanandre/ryanair-telegram-bot
+cd ryanair-telegram-bot
 cp .env.example .env
 # Edit .env and set your TG_TOKEN
 ```
@@ -131,7 +131,7 @@ docker compose up -d --build
 ## Project Structure
 
 ```
-ryanair_tracker/
+ryanair-telegram-bot/
 ├── bot/
 │   ├── app.py              # Bot entry point, /start, /help, APScheduler setup
 │   ├── common.py           # State constants, keyboard builders, result formatter
@@ -144,7 +144,7 @@ ryanair_tracker/
 ├── chats.py                # Chat registry (chats.json)
 ├── schedules.py            # Schedule CRUD (schedules.json)
 ├── notify.py               # Push notification helper for CLI mode
-└── main.py                 # CLI entry point (ryanair-tracker)
+└── main.py                 # CLI entry point (ryanair-telegram-bot)
 Dockerfile
 docker-compose.yml
 ```
