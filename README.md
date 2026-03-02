@@ -1,4 +1,4 @@
-# Ryanair Deal Tracker Bot
+# ryanair-telegram-bot
 
 A personal Telegram bot that searches Ryanair for cheap round-trip flights, tracks price history, and sends alerts when deals appear.
 
@@ -57,24 +57,24 @@ TG_TOKEN=your_bot_token_here
 
 All persistent state is stored in `./data/` (mounted as a Docker volume):
 
-| File | Contents |
-|---|---|
-| `data/chats.json` | Registered chat IDs (populated on `/start`) |
-| `data/schedules.json` | Saved scheduler configs |
-| `data/bot_history.json` | Price history per route for trend tracking |
+| File                    | Contents                                    |
+| ----------------------- | ------------------------------------------- |
+| `data/chats.json`       | Registered chat IDs (populated on `/start`) |
+| `data/schedules.json`   | Saved scheduler configs                     |
+| `data/bot_history.json` | Price history per route for trend tracking  |
 
 ---
 
 ## Bot Commands
 
-| Command | Description |
-|---|---|
-| `/start` | Register your chat and show welcome message |
-| `/help` | Show available commands |
-| `/search` | Start interactive flight search wizard |
-| `/find ORIGIN DEST DATE_FROM DATE_TO [MIN_N [MAX_N [MAX_PRICE]]]` | Quick search |
-| `/schedules` | Manage recurring scheduled searches |
-| `/cancel` | Cancel any in-progress wizard |
+| Command                                                           | Description                                 |
+| ----------------------------------------------------------------- | ------------------------------------------- |
+| `/start`                                                          | Register your chat and show welcome message |
+| `/help`                                                           | Show available commands                     |
+| `/search`                                                         | Start interactive flight search wizard      |
+| `/find ORIGIN DEST DATE_FROM DATE_TO [MIN_N [MAX_N [MAX_PRICE]]]` | Quick search                                |
+| `/schedules`                                                      | Manage recurring scheduled searches         |
+| `/cancel`                                                         | Cancel any in-progress wizard               |
 
 ### `/find` examples
 
@@ -85,6 +85,7 @@ All persistent state is stored in `./data/` (mounted as a Docker volume):
 ```
 
 `DEST` can be:
+
 - A 2-letter country code: `GR`, `IT`, `ES`, `PT`, `HR`
 - Multiple countries comma-separated: `GR,IT`
 - A specific 3-letter airport IATA: `RMI`, `ATH`
@@ -112,7 +113,7 @@ mkdir -p data
 ```bash
 # On your VPS
 git clone https://github.com/andrebanandre/ryanair-telegram-bot
-cd ryanair-tracker
+cd ryanair-telegram-bot
 cp .env.example .env && nano .env   # set TG_TOKEN
 mkdir -p data
 docker compose up -d
