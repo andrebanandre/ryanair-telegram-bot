@@ -1,0 +1,13 @@
+.env
+.venv/
+data/
+schedules.json
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+dist/
+build/
+*.egg-info/
+.DS_Store

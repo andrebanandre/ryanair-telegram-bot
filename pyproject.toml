@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "ryanair-tracker"
+version = "0.1.0"
+description = "Daily Ryanair deal tracker from VIE airport"
+authors = ["Andrii"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+ryanair-py = "^3.0.0"
+typer = "^0.15.0"
+rich = "^13.9.0"
+lxml = "^5.3.0"
+python-telegram-bot = "^22.0"
+python-dotenv = "^1.0"
+fastapi = {extras = ["standard"], version = "^0.115.0"}
+apscheduler = ">=3.10,<4"
+
+[tool.poetry.scripts]
+ryanair-tracker = "ryanair_tracker.main:app"
+ryanair-bot = "ryanair_tracker.bot.app:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

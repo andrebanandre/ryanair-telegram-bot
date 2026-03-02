@@ -1,0 +1,11 @@
+services:
+  ryanair-bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # All persistent JSON state (chats, history, schedules) in one place
+      - ./data:/app/data
+    # Optional: expose health/webhook port (not needed for polling mode)
+    # ports:
+    #   - "8990:8990"
