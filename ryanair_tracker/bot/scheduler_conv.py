@@ -225,12 +225,18 @@ async def delete_yes(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     if sched_id:
         delete_schedule(sched_id, _schedules_file)
         _remove_job(sched_id)
-    return await _show_menu(update, ctx)
+    await update.callback_query.message.reply_text(
+        "🗑️ Schedule deleted. Use /schedules to manage your schedules."
+    )
+    return ConversationHandler.END
 
 
 async def delete_no(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await update.callback_query.answer()
-    return await _show_menu(update, ctx)
+    await update.callback_query.message.reply_text(
+        "Deletion cancelled. Use /schedules to manage your schedules."
+    )
+    return ConversationHandler.END
 
 
 # ── Step 1: Name ──────────────────────────────────────────────────────────────
@@ -667,10 +673,13 @@ async def _save_and_show(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await update.effective_message.reply_text(
         f"✅ Schedule <b>{d.get('name', 'Unnamed')}</b> {action}!\n"
         f"Runs: {days_label} at {time_label}  ·  {d['origin']} → {dest}\n"
-        f"Window: {d['date_from']} – {d['date_to']}",
+        f"Window: {d['date_from']} – {d['date_to']}\n\n"
+        "Use /schedules to manage your schedules.",
         parse_mode="HTML",
     )
-    return await _show_menu(update, ctx, new_msg=True)
+    # End the conversation — avoids a spurious timeout message 10 min later.
+    # The user re-enters the menu by typing /schedules.
+    return ConversationHandler.END
 
 
 # ── Cancel / Timeout ──────────────────────────────────────────────────────────
@@ -682,11 +691,17 @@ async def cancel(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def _on_timeout(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    has_draft = bool(ctx.user_data.get("sched_draft"))
     _clear_draft(ctx)
     try:
         msg = update.effective_message
         if msg:
-            await msg.reply_text("⏱ Wizard timed out. Nothing was saved. /schedules to start again.")
+            text = (
+                "⏱ Wizard timed out. Nothing was saved. /schedules to start again."
+                if has_draft else
+                "⏱ Session expired. /schedules to open your schedules."
+            )
+            await msg.reply_text(text)
     except Exception:
         pass
     return ConversationHandler.END

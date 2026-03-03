@@ -72,40 +72,50 @@ def format_results(
 ) -> str:
     """Format results as Telegram HTML.
 
-    Header shows overall price range (min–max) and % trend vs previous run.
-    Each line shows individual flight with per-route trend tag.
+    Header: overall price range + trend.
+    Each result block:
+        FROM: <flight>  <date> <time>  <orig>→<dest>  <price> ↑↓%
+        BACK: <flight>  <date> <time>  <dest>→<orig>  <price> ↑↓%
+        <N>n · <total> ↑↓% 🔥
     """
     if not results:
         return f"<b>No flights found</b> from {origin} to {dest_label}."
 
-    from ..bot_history import trend_tag, overall_trend as calc_overall_trend
+    from ..bot_history import trend_tag, leg_trend_tag, overall_trend as calc_overall_trend
 
     shown = sorted(results, key=lambda x: x["total_price"])[:15]
     prices = [r["total_price"] for r in results]
     min_p, max_p = min(prices), max(prices)
     currency = results[0]["currency"]
 
-    if history:
-        ot = calc_overall_trend(min_p, results, history)
-    else:
-        ot = ""
-
-    lines = [
+    ot = calc_overall_trend(min_p, results, history) if history else ""
+    header = (
         f"<b>Flights {origin} → {dest_label}</b>  ({total} results)\n"
-        f"Price: <b>{min_p:.0f}–{max_p:.0f} {currency}</b>{ot}\n"
-    ]
+        f"Price: <b>{min_p:.0f}–{max_p:.0f} {currency}</b>{ot}"
+    )
+
+    blocks = [header]
     for r in shown:
-        out_dt = r["outbound_depart"][5:]  # MM-DD HH:MM
+        out_dt = r["outbound_depart"][5:]   # MM-DD HH:MM
         ret_dt = r["return_depart"][5:]
         route_key = f"{r['origin']}-{r['destination']}"
-        trend = trend_tag(r["total_price"], route_key, history) if history else ""
+        out_p = r.get("outbound_price", 0.0)
+        ret_p = r.get("return_price", 0.0)
+
+        out_trend = leg_trend_tag(out_p, route_key, "outbound", history)
+        ret_trend = leg_trend_tag(ret_p, route_key, "return", history)
+        total_trend = trend_tag(r["total_price"], route_key, history) if history else ""
         deal = " 🔥" if r.get("is_deal") else ""
-        lines.append(
-            f"<b>{r['outbound_flight']}</b> {out_dt} → {r['destination']}, "
-            f"back {ret_dt} ({r['nights']}n) "
-            f"<b>{r['total_price']:.0f} {currency}</b>{trend}{deal}"
+
+        blocks.append(
+            f"<b>FROM</b>: {r['outbound_flight']}  {out_dt}  {r['origin']}→{r['destination']}  "
+            f"<b>{out_p:.0f} {currency}</b>{out_trend}\n"
+            f"<b>BACK</b>: {r['return_flight']}  {ret_dt}  {r['destination']}→{r['origin']}  "
+            f"<b>{ret_p:.0f} {currency}</b>{ret_trend}\n"
+            f"{r['nights']}n · <b>{r['total_price']:.0f} {currency}</b>{total_trend}{deal}"
         )
-    return "\n".join(lines)
+
+    return "\n\n".join(blocks)
 
 
 def build_cli_message(deals: list[dict], total: int) -> str:

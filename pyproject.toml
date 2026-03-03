@@ -19,6 +19,15 @@ apscheduler = ">=3.10,<4"
 ryanair-tracker = "ryanair_tracker.main:app"
 ryanair-bot = "ryanair_tracker.bot.app:main"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: real API calls (deselect with '-m not integration')",
+]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
