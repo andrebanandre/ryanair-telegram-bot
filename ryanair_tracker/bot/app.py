@@ -12,6 +12,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 from .wizard import build_wizard_handler
 from .query import find_command
 from .scheduler_conv import build_scheduler_handler, start_scheduler, stop_scheduler
+from .tracker_conv import build_tracker_handler, start_tracker_scheduler, stop_tracker_scheduler
 
 HELP_TEXT = """<b>Ryanair Deal Tracker Bot</b>
 
@@ -19,7 +20,8 @@ Commands:
 /search — Interactive flight search wizard
 /find ORIGIN DEST DATE_FROM DATE_TO [MIN_NIGHTS [MAX_NIGHTS [MAX_PRICE]]]
   — Quick one-liner search
-/schedules — Manage scheduled automatic searches
+/schedules — Manage scheduled automatic searches (date ranges)
+/track — Track price for a specific route on exact dates
 
 Examples:
 <code>/find VIE GR 2026-05-01 2026-06-30 7 8</code>
@@ -33,6 +35,10 @@ def _chats_file() -> Path:
 
 def _schedules_file() -> Path:
     return Path(os.environ.get("SCHEDULES_FILE", "./schedules.json"))
+
+
+def _trackers_file() -> Path:
+    return Path(os.environ.get("TRACKERS_FILE", "./data/trackers.json"))
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -56,10 +62,12 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def _post_init(app: Application) -> None:
     start_scheduler(app.bot, _schedules_file())
+    start_tracker_scheduler(app.bot, _trackers_file())
 
 
 async def _post_stop(app: Application) -> None:
     stop_scheduler()
+    stop_tracker_scheduler()
 
 
 def main() -> None:
@@ -81,6 +89,7 @@ def main() -> None:
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(build_wizard_handler())
     app.add_handler(build_scheduler_handler())
+    app.add_handler(build_tracker_handler())
     app.add_handler(CommandHandler("find", find_command))
 
     print("Bot running… Press Ctrl+C to stop.")
