@@ -71,10 +71,18 @@ async def toggle_dest(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     await query.answer()
     selected: set[str] = context.user_data.setdefault("dest_selected", set())
 
-    if query.data == "dest_done":
+    if query.data == "dest_skip_to_airport":
+        # Bypass country selection entirely — go straight to IATA entry (required)
+        context.user_data["dest_selected"] = set()
+        await query.edit_message_text(
+            "Step 3/10: Enter <b>destination airport</b> IATA (e.g. <code>ATH</code>, <code>RMI</code>):",
+            parse_mode="HTML",
+        )
+        return AIRPORT
+    elif query.data == "dest_done":
         if not selected:
             await query.edit_message_text(
-                "⚠️ Select at least one destination:",
+                "⚠️ Select at least one country, type a 2-letter code, or use '✈️ Skip → enter airport IATA':",
                 reply_markup=dest_keyboard(selected),
             )
             return DEST
@@ -89,6 +97,32 @@ async def toggle_dest(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         cc = query.data.replace("dest_", "")
         selected.discard(cc) if cc in selected else selected.add(cc)
         await query.edit_message_reply_markup(reply_markup=dest_keyboard(selected))
+        return DEST
+
+
+async def received_dest_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle free-text country/airport entry in the DEST step."""
+    code = update.message.text.strip().upper()
+    if len(code) == 3 and code.isalpha():
+        # Treat as airport IATA — bypass country selection
+        context.user_data["dest_airport"] = code
+        context.user_data["dest_selected"] = set()
+        return await _ask_date_from(update.message, context)
+    elif len(code) == 2 and code.isalpha():
+        selected: set[str] = context.user_data.setdefault("dest_selected", set())
+        selected.add(code)
+        await update.message.reply_text(
+            f"Added <b>{code}</b>. Selected: {', '.join(sorted(selected))}\n"
+            "Add more codes, toggle from the keyboard, or press Done ✅",
+            parse_mode="HTML",
+        )
+        return DEST
+    else:
+        await update.message.reply_text(
+            "❌ Enter a 2-letter country code (e.g. <code>FR</code>) "
+            "or 3-letter airport IATA (e.g. <code>CDG</code>):",
+            parse_mode="HTML",
+        )
         return DEST
 
 
@@ -344,7 +378,10 @@ def build_wizard_handler() -> ConversationHandler:
         entry_points=[CommandHandler("search", start_search)],
         states={
             ORIGIN: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_origin)],
-            DEST: [CallbackQueryHandler(toggle_dest, pattern="^dest_")],
+            DEST: [
+                CallbackQueryHandler(toggle_dest, pattern="^dest_"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, received_dest_text),
+            ],
             AIRPORT: [
                 CallbackQueryHandler(skip_airport, pattern="^skip_airport$"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, received_airport),

@@ -338,23 +338,31 @@ async def toggle_dest(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await query.answer()
     selected: set[str] = ctx.user_data.setdefault("sched_dest_selected", set())
 
-    if query.data == "dest_done":
+    if query.data == "dest_skip_to_airport":
+        # Bypass country selection — airport IATA is required
+        _draft(ctx)["country_codes"] = []
+        await query.message.reply_text(
+            "Step 6/13: Enter <b>destination airport</b> IATA (e.g. <code>ATH</code>, <code>RMI</code>):",
+            parse_mode="HTML",
+        )
+        return SCHED_AIRPORT
+    elif query.data == "dest_done":
         if not selected:
             await query.edit_message_text(
-                "⚠️ Select at least one destination:",
+                "⚠️ Select at least one country, type a 2-letter code, or use '✈️ Skip → enter airport IATA':",
                 reply_markup=dest_keyboard(selected),
             )
             return SCHED_DEST
         _draft(ctx)["country_codes"] = list(selected)
 
         cur_airport = _draft(ctx).get("dest_airport")
-        kb = skip_keyboard("sched_skip_airport")
         if _editing(ctx) and cur_airport:
-            kb = _with_keep(kb.inline_keyboard[0][0].callback_data and kb or kb, cur_airport)
             kb = InlineKeyboardMarkup([
                 [InlineKeyboardButton(f"Keep: {cur_airport}", callback_data="sched_keep")],
                 [InlineKeyboardButton("Skip ⏭ (all airports)", callback_data="sched_skip_airport")],
             ])
+        else:
+            kb = skip_keyboard("sched_skip_airport")
         await query.message.reply_text(
             "Step 6/13: (Optional) Enter a specific <b>destination airport</b> IATA "
             "(e.g. <code>RMI</code>) or skip for all airports in selected countries:",
@@ -366,6 +374,33 @@ async def toggle_dest(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         cc = query.data.replace("dest_", "")
         selected.discard(cc) if cc in selected else selected.add(cc)
         await query.edit_message_reply_markup(reply_markup=dest_keyboard(selected))
+        return SCHED_DEST
+
+
+async def received_dest_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle free-text country/airport entry in SCHED_DEST step."""
+    code = update.message.text.strip().upper()
+    if len(code) == 3 and code.isalpha():
+        # Treat as airport IATA — bypass country selection entirely
+        _draft(ctx)["country_codes"] = []
+        _draft(ctx)["dest_airport"] = code
+        return await _ask_date_from(update.message, ctx)
+    elif len(code) == 2 and code.isalpha():
+        selected: set[str] = ctx.user_data.setdefault("sched_dest_selected", set())
+        selected.add(code)
+        _draft(ctx)["country_codes"] = list(selected)
+        await update.message.reply_text(
+            f"Added <b>{code}</b>. Selected: {', '.join(sorted(selected))}\n"
+            "Add more codes, toggle from the keyboard, or press Done ✅",
+            parse_mode="HTML",
+        )
+        return SCHED_DEST
+    else:
+        await update.message.reply_text(
+            "❌ Enter a 2-letter country code (e.g. <code>FR</code>) "
+            "or 3-letter airport IATA (e.g. <code>CDG</code>):",
+            parse_mode="HTML",
+        )
         return SCHED_DEST
 
 
@@ -835,6 +870,7 @@ def build_scheduler_handler() -> ConversationHandler:
             ],
             SCHED_DEST: [
                 CallbackQueryHandler(toggle_dest, pattern="^dest_"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, received_dest_text),
             ],
             SCHED_AIRPORT: [
                 CallbackQueryHandler(skip_airport, pattern="^sched_skip_airport$"),

@@ -7,21 +7,29 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 # Wizard conversation state indices
 ORIGIN, DEST, AIRPORT, DATE_FROM, DATE_TO, MIN_NIGHTS, MAX_NIGHTS, DEPART_AFTER, DEPART_BEFORE, MAX_PRICE = range(10)
 
-DEST_COUNTRIES = ["GR", "IT", "ES", "PT", "HR"]
+DEST_COUNTRIES = [
+    "GR", "IT", "ES", "PT", "HR",
+    "FR", "DE", "NL", "CY", "MT",
+    "BG", "RO", "PL", "IE", "MA",
+]
 
 COUNTRY_NAMES = {
-    "GR": "Greece",
-    "IT": "Italy",
-    "ES": "Spain",
-    "PT": "Portugal",
-    "HR": "Croatia",
+    "GR": "Greece",   "IT": "Italy",       "ES": "Spain",
+    "PT": "Portugal", "HR": "Croatia",     "FR": "France",
+    "DE": "Germany",  "NL": "Netherlands", "CY": "Cyprus",
+    "MT": "Malta",    "BG": "Bulgaria",    "RO": "Romania",
+    "PL": "Poland",   "IE": "Ireland",     "MA": "Morocco",
 }
 
 
 def dest_keyboard(selected: set[str]) -> InlineKeyboardMarkup:
+    # Custom-selected countries not in the preset list appear at the top
+    custom = sorted(cc for cc in selected if cc not in DEST_COUNTRIES)
+    all_countries = custom + DEST_COUNTRIES
+
     buttons: list[list[InlineKeyboardButton]] = []
     row: list[InlineKeyboardButton] = []
-    for cc in DEST_COUNTRIES:
+    for cc in all_countries:
         label = f"{'✅ ' if cc in selected else ''}{cc}"
         row.append(InlineKeyboardButton(label, callback_data=f"dest_{cc}"))
         if len(row) == 3:
@@ -29,6 +37,7 @@ def dest_keyboard(selected: set[str]) -> InlineKeyboardMarkup:
             row = []
     if row:
         buttons.append(row)
+    buttons.append([InlineKeyboardButton("✈️ Skip → enter airport IATA", callback_data="dest_skip_to_airport")])
     buttons.append([InlineKeyboardButton("Done ✅", callback_data="dest_done")])
     return InlineKeyboardMarkup(buttons)
 
