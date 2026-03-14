@@ -90,11 +90,12 @@ def fetch_round_trips(
 
             current += timedelta(days=7)
 
-    # Deduplicate by (outbound_flight, return_flight)
+    # Deduplicate by (outbound_flight, outbound_depart, return_flight)
+    # Flight numbers repeat weekly on the same route, so include the date.
     seen: set[tuple] = set()
     unique: list[dict] = []
     for r in results:
-        key = (r["outbound_flight"], r["return_flight"])
+        key = (r["outbound_flight"], r["outbound_depart"], r["return_flight"])
         if key not in seen:
             seen.add(key)
             unique.append(r)
