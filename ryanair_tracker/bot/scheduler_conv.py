@@ -676,6 +676,7 @@ async def _save_and_show(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     bot = ctx.bot
     editing_id = ctx.user_data.get("sched_editing_id")
 
+
     d.setdefault("origin", "VIE")
     d.setdefault("country_codes", [])
     d.setdefault("dest_airport", None)
@@ -916,7 +917,7 @@ def build_scheduler_handler() -> ConversationHandler:
             CommandHandler("help", cancel),
             CommandHandler("search", cancel),
             CommandHandler("find", cancel),
-            CommandHandler("schedules", cancel),
+            CommandHandler("schedules", show_schedules),
         ],
         conversation_timeout=600,
         per_chat=True,
